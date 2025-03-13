@@ -4,6 +4,16 @@
 import socket
 import time
 import sys
+import os
+
+def check_port(host, port):
+    """Check if a port is open on the host"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        result = sock.connect_ex((host, port))
+        return result == 0
+    finally:
+        sock.close()
 
 def main():
     """
@@ -14,11 +24,27 @@ def main():
 
     print("Python client for JADE Book Ordering System (KQML Protocol)")
     print("=========================================================")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Checking connection to {HOST}:{PORT}...")
 
     try:
+        # Tunggu sebentar untuk memastikan server sudah siap
+        print("Waiting for server to be ready...")
+        time.sleep(2)
+        
+        # Check if port is open
+        if not check_port(HOST, PORT):
+            print(f"Error: Port {PORT} is not open on {HOST}")
+            print("Please make sure:")
+            print("1. JADE platform is running with SocketSellerAgentKQML")
+            print("2. No firewall is blocking the connection")
+            print("3. The agent has successfully initialized its socket server")
+            sys.exit(1)
+        
         # Mencoba koneksi ke agen JADE KQML
         print(f"Connecting to JADE KQML agent at {HOST}:{PORT}...")
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.settimeout(5)  # Set timeout to 5 seconds
         client_socket.connect((HOST, PORT))
         print("Connected to JADE KQML agent!")
 
@@ -59,6 +85,10 @@ def main():
     except ConnectionRefusedError:
         print("Error: Could not connect to the JADE KQML agent.")
         print("Make sure the JADE platform is running with the SocketSellerAgentKQML.")
+        sys.exit(1)
+    except socket.timeout:
+        print("Error: Connection timed out.")
+        print("The server might be busy or not responding.")
         sys.exit(1)
     except Exception as e:
         print(f"An error occurred: {e}")
